@@ -41,6 +41,18 @@ class UKF {
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
+  void GenerateSigmaPoints();
+
+  void AugmentedSigmaPoints(Eigen::MatrixXd* Xsig_out);
+
+  void SigmaPointPrediction(Eigen::MatrixXd& Xsig_aug, double delta_t);
+
+  void PredictMeanAndCovariance();
+
+  void PredictRadarMeasurement(Eigen::VectorXd* z_out, Eigen::MatrixXd* S_out, Eigen::MatrixXd* Zsig_out);
+
+  void UpdateStateRadar(Eigen::VectorXd &z, Eigen::VectorXd &z_pred, Eigen::MatrixXd &S, Eigen::MatrixXd &Zsig) ;
+
 
   // initially set to false, set to true in first call of ProcessMeasurement
   bool is_initialized_;
@@ -56,6 +68,12 @@ class UKF {
 
   // state covariance matrix
   Eigen::MatrixXd P_;
+
+  // lidar measurement model
+  Eigen::MatrixXd H_;
+
+  // lidar covariance matrix
+  Eigen::MatrixXd R_;
 
   // predicted sigma points matrix
   Eigen::MatrixXd Xsig_pred_;

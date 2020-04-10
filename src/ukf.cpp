@@ -66,6 +66,8 @@ UKF::UKF() {
             0, std_laspy_;
 
   is_initialized_ = false;
+
+  MatrixXd Xsig_pred_ = MatrixXd(n_aug_, 2 * n_aug_ + 1);
   //augment_ = true;
   /**
    * End DO NOT MODIFY section for measurement noise values 
@@ -93,6 +95,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       time_us_ = meas_package.timestamp_;
       is_initialized_ = true;
       std::cout<< "LIDAR " << std::endl;
+      std::cout << "x: "<< x_ << std::endl;
+  std::cout << "P: "<< P_ << std::endl;
     }
     else if (meas_package.sensor_type_ == MeasurementPackage::RADAR){
       x_ << meas_package.raw_measurements_[0]*cos(meas_package.raw_measurements_[1]), 
@@ -103,6 +107,8 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       time_us_ = meas_package.timestamp_;
       is_initialized_ = true;
       std::cout<< "RADAR " << std::endl;
+      std::cout << "x: "<< x_ << std::endl;
+  std::cout << "P: "<< P_ << std::endl;
 
     }
       return;    
@@ -132,6 +138,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
 
 void UKF::Prediction(double delta_t) {
+   std::cout << "Prediction init" << std::endl;
   /**
    * TODO: Complete this function! Estimate the object's location. 
    * Modify the state vector, x_. Predict sigma points, the state, 
@@ -146,10 +153,11 @@ void UKF::Prediction(double delta_t) {
    UKF::SigmaPointPrediction(Xsig_aug, delta_t);
 
    UKF::PredictMeanAndCovariance();
-  
+   std::cout << "Prediction end" << std::endl;
 }
 
 void UKF::UpdateLidar(MeasurementPackage meas_package) {
+  std::cout << "UpdateLidar init" << std::endl;
   /*
    * about the object's position. Modify the state vector, x_, and 
    * covariance, P_.
@@ -169,10 +177,14 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   long x_size = x_.size();
   MatrixXd I = MatrixXd::Identity(x_size, x_size);
   P_ = (I - K * H_) * P_;
+  std::cout << "x: "<< x_ << std::endl;
+  std::cout << "P: "<< P_ << std::endl;
+  std::cout << "UpdateRadar end" << std::endl;
 
 }
 
 void UKF::UpdateRadar(MeasurementPackage meas_package) {
+  std::cout << "UpdateRadar init" << std::endl;
   /**
    * TODO: Complete this function! Use radar data to update the belief 
    * about the object's position. Modify the state vector, x_, and 
@@ -192,20 +204,19 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   VectorXd z = meas_package.raw_measurements_;
 
   //std::cout << "Before" << std::endl;
-  UKF::UpdateStateRadar(z, z_pred, S, Zsig);  
+  UKF::UpdateStateRadar(z, z_pred, S, Zsig); 
+
+  std::cout << "UpdateRadar end" << std::endl; 
 
 }
 
 void UKF::GenerateSigmaPoints() {
-  //std::cout << "GenerateSigmaPoints init" << std::endl;
+  std::cout << "GenerateSigmaPoints init" << std::endl;
   // create sigma point matrix
   MatrixXd Xsig = MatrixXd(n_x_, 2 * n_x_ + 1);
 
   // calculate square root of P
   MatrixXd A = P_.llt().matrixL();
-
-
-  
   Xsig.col(0) << x_;
   // set sigma points as columns of matrix Xsig
   
@@ -214,10 +225,13 @@ void UKF::GenerateSigmaPoints() {
       Xsig.col(i+n_x_+1) = x_ - A.col(i)*sqrt(lambda_ + n_x_);
   }
   Xsig_pred_ = Xsig;
+  std::cout << "Xsig: "<< Xsig_pred_ << std::endl;
+  std::cout << "GenerateSigmaPoints end" << std::endl;
 }
 
 
 void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
+  std::cout << "AugmentedSigmaPoints init" << std::endl;
   // create augmented mean vector
   VectorXd x_aug = VectorXd(n_aug_);
 
@@ -249,11 +263,11 @@ void UKF::AugmentedSigmaPoints(MatrixXd* Xsig_out) {
   }
   // write result
   *Xsig_out = Xsig_aug;
-  //std::cout << "GenerateSigmaPoints end" << std::endl;
+  std::cout << "AugmentedSigmaPoints end" << std::endl;
 }
 
 void UKF::SigmaPointPrediction(MatrixXd& Xsig_aug, double delta_t){
-  //std::cout << "SigmaPointPrediction init" << std::endl;
+  std::cout << "SigmaPointPrediction init" << std::endl;
 
   // create matrix with predicted sigma points as columns
   MatrixXd Xsig_pred = MatrixXd(n_x_, 2 * n_aug_ + 1);
@@ -301,11 +315,13 @@ void UKF::SigmaPointPrediction(MatrixXd& Xsig_aug, double delta_t){
     Xsig_pred(4,i) = yawd_p;
   }
   Xsig_pred_ = Xsig_pred;
-  //std::cout << "SigmaPointPrediction end" << std::endl;
+  
+  std::cout << "Xsig: "<< Xsig_pred_ << std::endl;
+  std::cout << "SigmaPointPrediction end" << std::endl;
 }
 
 void UKF::PredictMeanAndCovariance() {
-  //std::cout << "PredictMeanAndCovariance init" << std::endl;
+  std::cout << "PredictMeanAndCovariance init" << std::endl;
   // create vector for weights
   weights_ = VectorXd(2*n_aug_+1);
 
@@ -356,11 +372,13 @@ void UKF::PredictMeanAndCovariance() {
   // write result
   x_ = x;
   P_ = P;
-  //std::cout << "PredictMeanAndCovariance end" << std::endl;
+  std::cout << "x: "<< x_ << std::endl;
+  std::cout << "P: "<< P_ << std::endl;
+  std::cout << "PredictMeanAndCovariance end" << std::endl;
 }
 
 void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out, MatrixXd* Zsig_out) {
-  //std::cout << "PredictRadarMeaurement init" << std::endl;
+  std::cout << "PredictRadarMeaurement init" << std::endl;
 
   int n_z = 3;
   // create matrix for sigma points in measurement space
@@ -419,11 +437,15 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out, MatrixXd* Zs
   *z_out = z_pred;
   *S_out = S;
   *Zsig_out = Zsig;
+  std::cout << "z_pred: "<< z_pred << std::endl;
+  std::cout << "S: "<< S << std::endl;
+
+  std::cout << "PredictRadarMeaurement end" << std::endl;
 }
 
 void UKF::UpdateStateRadar(VectorXd &z, VectorXd &z_pred, MatrixXd &S, MatrixXd &Zsig) {
-  //std::cout << "Update State init" << std::endl;
-  //std::cout << z << std::endl;
+  std::cout << "Update State init" << std::endl;
+  std::cout << "z: " << z << std::endl;
   // create matrix for cross correlation Tc
   MatrixXd Tc = MatrixXd(n_x_, 3);
 
@@ -459,5 +481,7 @@ void UKF::UpdateStateRadar(VectorXd &z, VectorXd &z_pred, MatrixXd &S, MatrixXd 
   // update state mean and covariance matrix
   x_ = x_ + K*z_diff;
   P_ = P_ - K*S*K.transpose();
-  //std::cout << "Update State end" << std::endl;
+  std::cout << "x: "<< x_ << std::endl;
+  std::cout << "P: "<< P_ << std::endl;
+  std::cout << "Update State end" << std::endl;
 } 

@@ -73,7 +73,10 @@ class UKF {
   Eigen::MatrixXd H_;
 
   // lidar covariance matrix
-  Eigen::MatrixXd R_;
+  Eigen::MatrixXd R_lidar_;
+
+  // Radar covariance matrix
+  Eigen::MatrixXd R_radar_;
 
   // predicted sigma points matrix
   Eigen::MatrixXd Xsig_pred_;

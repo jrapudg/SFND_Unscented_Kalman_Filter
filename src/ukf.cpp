@@ -34,6 +34,15 @@ UKF::UKF() {
   H_ = MatrixXd(2, 5);
   H_ << 1, 0, 0, 0, 0,
             0, 1, 0, 0, 0;
+  
+  /*
+  These values of std_a_ and std_yawdd_ are too high. Imagine with 5 m/s^2, 
+  and 8 m/s^2 accelerations in real life. It's not good for the human comfort 
+  level. These values should be between 0 and 3.And when you change these values 
+  to that range, then you might need to fine-tune your covariance matrix P_. 
+  Possibly the last two elements of the diagonal of the identity matrix with 
+  the square of the standard deviation of laser or radar measurement noise.
+  */
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
   std_a_ = 5; //5
@@ -61,14 +70,30 @@ UKF::UKF() {
   // Radar measurement noise standard deviation radius change in m/s
   std_radrd_ = 0.3;
 
-  R_ = MatrixXd(2, 2);
-  R_ << std_laspx_, 0,
+  R_lidar_ = MatrixXd(2, 2);
+  R_lidar_ << std_laspx_, 0,
             0, std_laspy_;
 
   is_initialized_ = false;
 
   MatrixXd Xsig_pred_ = MatrixXd(n_aug_, 2 * n_aug_ + 1);
-  //augment_ = true;
+  // add measurement noise covariance matrix
+  R_radar_ = MatrixXd(3,3);
+  R_radar_ <<  std_radr_*std_radr_, 0, 0,
+        0, std_radphi_*std_radphi_, 0,
+        0, 0,std_radrd_*std_radrd_;
+
+  // create vector for weights
+  weights_ = VectorXd(2*n_aug_+1);
+
+  for (int i = 0; i < 2*n_aug_ + 1; ++i){
+    if (i == 0){
+        weights_(i) = lambda_/(lambda_+n_aug_);
+    }
+    else{
+        weights_(i) = 1/(2*(lambda_+n_aug_));
+    }
+  }
   /**
    * End DO NOT MODIFY section for measurement noise values 
    */
@@ -167,7 +192,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   VectorXd z_pred = H_ * x_;
   VectorXd y = z - z_pred;
   MatrixXd Ht = H_.transpose();
-  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd S = H_ * P_ * Ht + R_lidar_;
   MatrixXd Si = S.inverse();
   MatrixXd PHt = P_ * Ht;
   MatrixXd K = PHt * Si;
@@ -322,23 +347,12 @@ void UKF::SigmaPointPrediction(MatrixXd& Xsig_aug, double delta_t){
 
 void UKF::PredictMeanAndCovariance() {
   std::cout << "PredictMeanAndCovariance init" << std::endl;
-  // create vector for weights
-  weights_ = VectorXd(2*n_aug_+1);
-
   // create vector for predicted state
   VectorXd x = VectorXd(n_x_);
 
   // create covariance matrix for prediction
   MatrixXd P = MatrixXd(n_x_, n_x_);
   //std::cout << "1" << std::endl;
-  for (int i = 0; i < 2*n_aug_ + 1; ++i){
-    if (i == 0){
-        weights_(i) = lambda_/(lambda_+n_aug_);
-    }
-    else{
-        weights_(i) = 1/(2*(lambda_+n_aug_));
-    }
-  }
   //std::cout << "2" << std::endl;
   // predict state mean
     // predicted state mean
@@ -425,13 +439,8 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out, MatrixXd* Zs
 
     S = S + weights_(i) * z_diff * z_diff.transpose();
   }
-
-  // add measurement noise covariance matrix
-  MatrixXd R = MatrixXd(n_z,n_z);
-  R <<  std_radr_*std_radr_, 0, 0,
-        0, std_radphi_*std_radphi_, 0,
-        0, 0,std_radrd_*std_radrd_;
-  S = S + R;
+  
+  S = S + R_radar_;
 
   // write result
   *z_out = z_pred;
